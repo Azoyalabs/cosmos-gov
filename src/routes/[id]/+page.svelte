@@ -126,6 +126,7 @@
 			'auto',
 			HACKATHON_MEMO
 		);
+		
 
 		toast.promise(vote, {
 			loading: 'Sending Transaction...',

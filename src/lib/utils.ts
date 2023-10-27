@@ -71,3 +71,18 @@ export const percentFormatter = new Intl.NumberFormat('en-us', {
 
 
 export const numberFormatter = new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 });
+
+
+export function omit<Data extends object, Keys extends keyof Data>(
+	data: Data,
+	keys: Keys[]
+  ): Omit<Data, Keys> {
+	const result = { ...data };
+  
+	for (const key of keys) {
+	  delete result[key];
+	}
+  
+	return result as Omit<Data, Keys>;
+  }
+  

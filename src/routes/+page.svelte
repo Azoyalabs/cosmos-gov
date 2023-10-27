@@ -107,7 +107,7 @@
 							>
 								<Card.Title>
 									<Badge variant="secondary" class="tracking-wide">{prop.type}</Badge>
-									<div class="mt-3">
+									<div class="mt-3 leading-snug">
 										{prop.content.title}
 									</div>
 								</Card.Title>

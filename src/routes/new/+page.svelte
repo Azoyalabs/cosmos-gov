@@ -4,99 +4,41 @@
 	import Label from '$lib/components/ui/label/label.svelte';
 	import { MsgSubmitProposal } from '$lib/cosmos/transpile/cosmos/gov/v1beta1/tx';
 
-	import { TextProposal } from 'cosmjs-types/cosmos/gov/v1beta1/gov';
-	import {
-		ConsumerAdditionProposal,
-		ConsumerRemovalProposal,
-		EquivocationProposal
-	} from '$lib/cosmos/transpile/interchain_security/ccv/provider/v1/provider';
 	import { ATOM_BALANCE, SIGNING_CLIENT, USER_ADDRESS } from '$lib/state';
-	import { CommunityPoolSpendProposal } from 'cosmjs-types/cosmos/distribution/v1beta1/distribution';
-	import { ParameterChangeProposal } from 'cosmjs-types/cosmos/params/v1beta1/params';
-	import { SoftwareUpgradeProposal } from 'cosmjs-types/cosmos/upgrade/v1beta1/upgrade';
-	import { ClientUpdateProposal } from 'cosmjs-types/ibc/core/client/v1/client';
-	import { writable } from 'svelte/store';
+	import { type Writable, writable } from 'svelte/store';
 	import { PUBLIC_DENOM, PUBLIC_DISPLAY_DENOM } from '$env/static/public';
 	import { HACKATHON_MEMO } from '$lib/constants.js';
-	import Textarea from '$lib/components/ui/textarea/textarea.svelte';
 	import { SendIcon } from 'lucide-svelte';
 	import toast from 'svelte-french-toast';
 	import { goto } from '$app/navigation';
+	import ProposalForm from './ProposalForm.svelte';
+	import { AVAILABLE_PROPOSALS_DESCRIPTORS, type AvailableProposals } from '$lib/utils/proposals';
 
 	export let data;
-
-	const allowedProposalTypes = [
-		{
-			label: 'Text Proposal',
-			description: 'Ask stakers to signal support for a change',
-			value: TextProposal,
-			url: '/cosmos.gov.v1beta1.TextProposal'
-		},
-		{
-			label: 'Community Pool Spend Proposal',
-			description: 'Ask for funding from the community pool',
-			value: CommunityPoolSpendProposal,
-			url: '/cosmos.distribution.v1beta1.CommunityPoolSpendProposal',
-			disabled: true
-		},
-		{
-			label: 'Software Upgrade proposal',
-			description: 'Upgrade the network to a new version',
-			value: SoftwareUpgradeProposal,
-			url: '/cosmos.upgrade.v1beta1.SoftwareUpgradeProposal',
-			disabled: true
-		},
-		{
-			label: 'Consumer Addition Proposal',
-			description: 'Add an ICS consumer',
-			value: ConsumerAdditionProposal,
-			url: '/interchain_security.ccv.provider.v1.ConsumerAdditionProposal',
-			disabled: true
-		},
-		{
-			label: 'Consumer Removal Proposal',
-			description: 'Remove an ICS consumer',
-			value: ConsumerRemovalProposal,
-			url: '/interchain_security.ccv.provider.v1.ConsumerRemovalProposal',
-			disabled: true
-		},
-		{
-			label: 'Parameter Change Proposal',
-			description: 'Change one or multiple parameters',
-			value: ParameterChangeProposal,
-			url: '/cosmos.params.v1beta1.ParameterChangeProposal',
-			disabled: true
-		},
-		{
-			label: 'Client Update Proposal',
-			description: 'Update an IBC client',
-			value: ClientUpdateProposal,
-			url: '/ibc.core.client.v1.ClientUpdateProposal',
-			disabled: true
-		},
-		{
-			label: 'Equivocation Proposal',
-			description: 'equivocation',
-			value: EquivocationProposal,
-			url: '/interchain_security.ccv.provider.v1.EquivocationProposal',
-			disabled: true
-		}
-	];
+	
+	const allowedProposalTypes = AVAILABLE_PROPOSALS_DESCRIPTORS.map((p) => ({
+		...p,
+		disabled: p.disabled ?? false
+	}));
 
 	let selectedProposalType = writable(allowedProposalTypes[0]);
 
-	let partial = $selectedProposalType.value?.fromPartial({}) ?? {};
+	let partial: Writable<AvailableProposals> = writable({ ...$selectedProposalType.value });
+
 	selectedProposalType.subscribe((v) => {
-		partial = v.value.fromPartial({});
+		partial = writable({ ...v.value });
 	});
 
 	async function submitProposal() {
-		const textprop = $selectedProposalType.value.fromPartial(partial);
+		// @ts-expect-error typescript can't know what we have here
+		const partialProp = $selectedProposalType.partial($partial);
+
 		const msgSubmitProposal = MsgSubmitProposal.fromPartial({
 			proposer: $USER_ADDRESS!,
 			content: {
 				typeUrl: $selectedProposalType.url,
-				value: Uint8Array.from($selectedProposalType.value.encode(textprop).finish())
+				// @ts-expect-error
+				value: Uint8Array.from($selectedProposalType.encoder(partialProp).finish())
 			},
 			initialDeposit: [
 				{ amount: ((deposit ?? 0) * Math.pow(10, 6)).toString(), denom: PUBLIC_DENOM }
@@ -167,22 +109,14 @@
 					variant="link"
 					href="https://docs.github.com/en/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax"
 					rel="noref"
+					target="_blank"
 					class="px-0">markdown format</Button
 				> when writing the description.
 			</p>
 		</div>
 
-		<div class="mt-5 space-y-5">
-			{#each Object.entries(partial) as kv (kv[0])}
-				<div>
-					<Label for="" class="capitalize">{kv[0]}</Label>
-					{#if kv[0] === 'description'}
-						<Textarea class="mt-1 min-h-[200px]" bind:value={partial[kv[0]]} required />
-					{:else}
-						<Input class="mt-1" bind:value={partial[kv[0]]} required />
-					{/if}
-				</div>
-			{/each}
+		<div class="mt-5">
+			<ProposalForm bind:val={partial} />
 		</div>
 	</section>
 
