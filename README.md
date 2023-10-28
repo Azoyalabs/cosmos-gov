@@ -6,7 +6,7 @@ Using RPC, protobuf generation and environment variables instead of just using c
 
 Special care has been given to support displaying proposal content fields as well as weighted and legacy votes.
 
-
+## Features
 This web interface:
 - Allows connection using the desktop Keplr wallet
 - Lists and parses all Governance proposals
